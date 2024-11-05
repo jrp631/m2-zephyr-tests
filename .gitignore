@@ -42,6 +42,12 @@
 *.idb
 *.pdb
 
+# Build directories 
+build/
+
+# VSCode Seetings 
+.vscode/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd

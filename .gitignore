@@ -43,10 +43,10 @@
 *.pdb
 
 # Build directories 
-build/
+**/build/
 
 # VSCode Seetings 
-.vscode/
+**/.vscode/
 
 # Kernel Module Compile Results
 *.mod*

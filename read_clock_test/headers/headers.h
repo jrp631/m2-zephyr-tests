@@ -10,7 +10,6 @@
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/measurements.h>
 #include <zephyr/kernel.h>
-#include <zephyr/timing/timing.h>
 
 static inline void m2osinit()
 {

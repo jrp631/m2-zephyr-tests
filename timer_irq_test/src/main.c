@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
   m2osinit();
   console_init(115200);
-  printf("Timer_IRQ_Test ");
+  printf("\nTimer_IRQ_Test ");
   printf("%d\n", NUM_OF_LOOPS);
   printf("Main starts\n");
 
@@ -65,6 +65,6 @@ int main(int argc, char **argv)
 
     measurements_hires__finish();
   }
-  printf("\nMain ends\n");
+  printf("\nMain ends");
   return 0;
 }

@@ -12,7 +12,7 @@ int main(int argc, char **argv)
   //k_thread_runtime_stats_enable(tid);
 
   // puts("Main starts\n");
-  printf("Main starts\n");
+  printf("\nMain starts\n");
 
   printf("Clock Test\n");
   printf("NUM_OF_LOOPS: %d\n", NUM_OF_LOOPS);
@@ -34,6 +34,6 @@ int main(int argc, char **argv)
 
   //k_thread_runtime_stats_disable(tid);//FIXME
   // puts("Main ends\n");
-  printf("\nMain ends\n");
+  printf("\nMain ends");
   return 0;
 }

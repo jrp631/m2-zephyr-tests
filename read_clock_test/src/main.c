@@ -13,10 +13,9 @@ int main(int argc, char **argv)
 {
   m2osinit();
   console_init(115200);
-  k_tid_t tid = k_current_get();//FIXME
   //k_thread_runtime_stats_enable(tid);
   // puts("Main starts\n");º
-  printf("Main starts\n");
+  printf("\nMain starts\n");
 
   measurements_hires__init();
 
@@ -40,6 +39,6 @@ int main(int argc, char **argv)
   }
   //k_thread_runtime_stats_disable(tid);//FIXME
   // puts("Main ends\n");
-  printf("\nMain ends\n");
+  printf("\nMain ends");
   return 0;
 }

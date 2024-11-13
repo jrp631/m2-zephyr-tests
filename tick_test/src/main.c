@@ -78,7 +78,7 @@ int main(int argc, char **argv)
   for (int i = 0; i < LOOPS; i++)
   {
     if(i == LOOPS/2){
-      k_sleep(K_MSEC(30000)); // 25 seconds to check if the tick overflow
+      k_sleep(K_MSEC(30000)); // 30 seconds to check if the tick overflow
     }
     clock_cycle_get_64[i] = sys_clock_cycle_get_64();
   }

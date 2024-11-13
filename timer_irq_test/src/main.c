@@ -15,7 +15,8 @@ int main(int argc, char **argv)
   printf("%d\n", NUM_OF_LOOPS);
   printf("Main starts\n");
 
-  while (1)
+  int iter = 0;
+  while (iter < 10)
   {
     // measure time to make measurements
     measurements_hires__init();
@@ -29,7 +30,7 @@ int main(int argc, char **argv)
     avg_time = (float)measurements_hires__measurement_time() / (float)NUM_OF_LOOPS;
     printf("Avg time:");
     printf("%" PRIu64, avg_time_ns);
-    printf("ns");
+    printf("ns ");
     printf("Time Units  ");
     measurements_hires__print_measures_data();
 
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     printf(")\n");
 
     measurements_hires__finish();
+    iter++;
   }
   printf("\nMain ends");
   return 0;

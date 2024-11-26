@@ -11,6 +11,7 @@
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/measurements.h>
 #include <zephyr/kernel.h>
+#include "../reports/tests_reports.h"
 
 static inline void m2osinit()
 {

@@ -17,6 +17,10 @@ static inline void m2osinit()
 {
 }
 
+static inline void check_posix_api()
+{
+}
+
 static inline void console_init(int baudrate)
 {
 }
@@ -34,5 +38,13 @@ static inline void set_systick_reload(uint32_t reload)
 #define print_console_int(num) printf("%"PRIu64, (uint64_t)(num))
 #define print_console_newline() printf("\n")
 #define measurements_hires__print_measures_data_serial() measurements_hires__print_measures_data()
+
+#define handle_error_en(en, msg)                                                                   \
+        do {                                                                                       \
+                errno = en;                                                                        \
+                perror(msg);                                                                       \
+                exit(EXIT_FAILURE);                                                                \
+        } while (0)
+
 
 #endif // !_ZEPHYR_POSIX_TEST_HEADERS

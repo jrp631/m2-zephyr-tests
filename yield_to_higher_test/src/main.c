@@ -1,5 +1,6 @@
 #include "../headers/headers.h"
 
+// #define _ZEPHYR__VERBOSE_
 #include <semaphore.h>
 
 THREAD_POOL(2);
@@ -34,10 +35,13 @@ task_h()
   sem_wait(&sem);
   while (1)
   {
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Task H: ");
     print_console("step_counter-> ");
     print_console_int(step_counter);
     print_console_newline();
+#endif //_ZEPHYR__VERBOSE_
+
     // print_console ("SP: ");
     // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
     // print_console_newline ();
@@ -70,10 +74,12 @@ task_l()
 
   while (1)
   {
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Task L1: ");
     print_console("step_counter-> ");
     print_console_int(step_counter);
     print_console_newline();
+#endif // _ZEPHYR__VERBOSE_
 
     // print_console ("SP: ");
     // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
@@ -87,10 +93,12 @@ task_l()
 
     tests_reports__eat(eat_time);
 
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Task L2: ");
     print_console("step_counter-> ");
     print_console_int(step_counter);
     print_console_newline();
+#endif // _ZEPHYR__VERBOSE_
 
     // print_console ("SP: ");
     // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
@@ -111,12 +119,12 @@ task_l()
     {
       measurements_hires__end_measurement();
     }
-
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Task L3: ");
     print_console("step_counter-> ");
     print_console_int(step_counter);
     print_console_newline();
-
+#endif // _ZEPHYR__VERBOSE_
     // print_console ("SP: ");
     // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
     // print_console_newline ();
@@ -140,10 +148,11 @@ task_l()
     }
     loop_counter++;
 
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Loop Counter: ");
     print_console_int(loop_counter);
     print_console_newline();
-
+#endif // _ZEPHYR__VERBOSE_
     step_counter = 0;
 
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);

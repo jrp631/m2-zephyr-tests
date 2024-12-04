@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
   measurements_hires__init();
 
-  while (loop_counter < 20)
+  while (loop_counter < 30)
   {
     measurements_hires__start_measurement();
     for (int i = 0; i < NUM_OF_LOOPS; i++)

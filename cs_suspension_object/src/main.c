@@ -44,7 +44,11 @@ void *task1()
       tests_reports__assert_equal_c(loop_counter2, loop_counter1, 0);
 
       print_console("  CSTIME(ns): ");
-      print_console_int((int)measurements_hires__measurement_avg_ns() / (loop_counter2 + 2));
+      print_console_int((int)measurements_hires__measurement_avg_ns() / (loop_counter1 + loop_counter2));
+      print_console_newline();
+      print_console("  CSTIME(ticks): ");
+      print_console_int((int)measurements_hires__measurement_avg() / (loop_counter1 + loop_counter2));
+      print_console_newline();
       measurements_hires__finish();
       tests_reports__test_ok();
     }

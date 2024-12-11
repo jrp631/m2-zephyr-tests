@@ -18,13 +18,14 @@ int counter2 = 0;
 struct timespec next_activation_time1;
 
 void * thread_body1(void *arg) {
-  print_console("Thread 1\n");
+  puts("Thread 1\n");
   counter1++;
   task1_executed = true;
     
   TS_INC(next_activation_time1, period1);
   clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
 		  &next_activation_time1, NULL);
+  return NULL;
 }
 
 //****************//
@@ -33,7 +34,7 @@ void * thread_body1(void *arg) {
 struct timespec next_activation_time2 = TS(0, 0);
 
 void * thread_body2(void *arg) {
-  print_console("Thread 2\n");
+  puts("Thread 2\n");
   counter2++;
   if (task2_executed) { //First activation
     tests_reports__assert(task1_executed);
@@ -45,6 +46,7 @@ void * thread_body2(void *arg) {
   TS_INC(next_activation_time2, period2);
   clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
 		  &next_activation_time2, NULL);
+  return NULL;
 }  
     
 //**********//
@@ -53,8 +55,8 @@ void * thread_body2(void *arg) {
 int main (int argc, char **argv) {
   m2osinit();
   console_init(115200);
-  print_console("Size_Periodic_Task_Two\n");
-  print_console("Main\n");
+  puts("Size_Periodic_Task_Two\n");
+  puts("Main\n");
   check_posix_api();
     
   pthread_t th1;
@@ -74,7 +76,7 @@ int main (int argc, char **argv) {
   pthread_create(&th1, &attr, thread_body1, NULL);    
   pthread_create(&th2, &attr2, thread_body2, NULL);
 
-  print_console("Main ends\n");
+  puts("Main ends\n");
 
   return 0;
 }

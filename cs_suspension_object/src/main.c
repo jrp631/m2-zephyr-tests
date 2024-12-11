@@ -7,10 +7,7 @@ THREAD_POOL(2);
 
 K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
-#define NUM_OF_LOOPS 300 // 8 for arduino short time
-
-// suspension_t so1 = SUSPENSION_INITIALIZER; FIXME -> REMOVE ONLY USED IN M2
-// suspension_t so2 = SUSPENSION_INITIALIZER; FIXME -> REMOVE ONLY USED IN M2
+#define NUM_OF_LOOPS 300 
 
 sem_t sem1;
 sem_t sem2;
@@ -24,10 +21,15 @@ int loop_counter2 = 0;
 
 void *task1()
 {
+  if (loop_counter1 == 0)
+    measurements_hires__start_measurement();
   while (1)
   {
-    //print_console("Task 1\n");
-    measurements_hires__init();
+#ifdef _ZEPHYR__VERBOSE_
+    print_console("Task 1, loop_counter: ");
+    print_console_int(loop_counter1);
+    print_console("\n");
+#endif // _ZEPHYR__VERBOSE_
 
     if (loop_counter1 == NUM_OF_LOOPS)
     {
@@ -49,17 +51,18 @@ void *task1()
       print_console("  CSTIME(ticks): ");
       print_console_int((int)measurements_hires__measurement_avg() / (loop_counter1 + loop_counter2));
       print_console_newline();
+      print_console(" AVG: ");
+      print_console_int((int)measurements_hires__measurement_avg());
+      print_console_newline();
       measurements_hires__finish();
       tests_reports__test_ok();
     }
 
     loop_counter1++;
 
-    sem_post(&sem2);
+    if (loop_counter1 != 1)
+      sem_post(&sem2);
     sem_wait(&sem1);
-
-    // suspension_set_true (&so2);
-    // suspension_suspend_until_true (&so1);
   }
 }
 
@@ -71,18 +74,21 @@ void *task2()
 {
   while (1)
   {
-    //print_console("Task 2\n");
-
+#ifdef _ZEPHYR__VERBOSE_
+    print_console("Task 2 , loop counter: ");
+    print_console_int(loop_counter2);
+    print_console("\n");
+#endif // _ZEPHYR__VERBOSE_
     // DIO.Put (Integer
     //(Ada.Real_Time.To_Duration (Ada.Real_Time.Clock)));
 
     loop_counter2++;
 
     sem_post(&sem1);
+    // print_console("Task 2, sem_post sem1\n");
     sem_wait(&sem2);
+    // print_console("Task 2, sem_wait sem2\n");
 
-    // suspension_set_true (&so1); FIXME -> REMOVE ONLY USED IN M2
-    // suspension_suspend_until_true (&so2); FIXME -> REMOVE ONLY USED IN M2
   }
 }
 
@@ -163,7 +169,7 @@ int main(int argc, char **argv)
 
   measurements_hires__init();
 
-  measurements_hires__start_measurement();
+  // measurements_hires__start_measurement();
 
   pthread_join(thread_task1, NULL);
   pthread_join(thread_task2, NULL);

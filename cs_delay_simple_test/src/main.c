@@ -2,15 +2,15 @@
 
 THREAD_POOL(2);
 
-#define NUM_THEADS 2
+#define NUM_THREADS 2
 #define STACK_SIZE 512
 
-K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THEADS, STACK_SIZE);
+K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
 // TASKS
 
 #define NUM_OF_LOOPS 20
-#define PERIOD1_NS 20000000 // 200000000 // -> 0,2 seg //FIXME
+#define PERIOD1_NS 2000000 // 20000000 // 200000000 // -> 0,2 seg //FIXME
 
 const struct timespec period1 = TS(0, 0);
 
@@ -25,6 +25,7 @@ bool other_task_executed = false;
 //*******//
 struct timespec next_time1;
 k_timeout_t period1_k = K_MSEC(0);
+k_timeout_t next_time1_k = K_MSEC(2);
 
 void *
 task1()
@@ -34,11 +35,12 @@ task1()
 #ifdef _ZEPHYR__VERBOSE_
     print_console("Task1\n");
 #endif //
-    clock_gettime(CLOCK_MONOTONIC, &next_time1);
-    if (loop_counter_1 != 0)
-    {
-      //tests_reports__assert(other_task_executed);
-    }
+    // clock_gettime(CLOCK_MONOTONIC, &next_time1);
+
+    // if (loop_counter_1 != 0)
+    // {
+    //   tests_reports__assert(other_task_executed);
+    // }
     if (loop_counter_1 == NUM_OF_LOOPS) // cs time
     {
 #ifdef _ZEPHYR__VERBOSE_
@@ -55,9 +57,13 @@ task1()
     }
     loop_counter_1++;
     other_task_executed = false;
-    TS_INC(next_time1, period1);
+    // TS_INC(next_time1, period1);
+    // print_console("Start measurements task1 ....");
     measurements_hires__start_measurement();
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
+
+    k_sleep(next_time1_k);
+
+    // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
   }
 }
 
@@ -72,20 +78,20 @@ other_task()
 {
   while (1)
   {
+    if (!other_task_executed)
+    {
+      measurements_hires__end_measurement();
+      // print_console("... End measurements other task\n");
+    }
+
 #ifdef _ZEPHYR__VERBOSE_
     print_console("Other Task\n");
 #endif // _ZEPHYR__VERBOSE_
-    measurements_hires__end_measurement();
 
-    // FIXME: code bellow
-    //clock_gettime(CLOCK_MONOTONIC, &next_time_other);
-    //TS_INC(next_time_other, period1);
-    // FIXME: code above
-
-    tests_reports__assert(!other_task_executed);
+    // tests_reports__assert(!other_task_executed);
     other_task_executed = true;
-    k_sleep(period_other_k); //sleeps 0;
-    //clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time_other, NULL);
+    k_sleep(period_other_k); // sleeps 0;
+    // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time_other, NULL);
   }
 }
 

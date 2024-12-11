@@ -1,6 +1,5 @@
 #include "../headers/headers.h"
 
-// #define _ZEPHYR__VERBOSE_
 #include <semaphore.h>
 
 THREAD_POOL(2);
@@ -67,6 +66,8 @@ task_h()
 
 struct timespec eat_time = TS(0, 10000000);
 struct timespec next_time = TS(0, 0);
+
+k_timeout_t timeout = K_MSEC(10);
 
 void *
 task_l()
@@ -155,7 +156,8 @@ task_l()
 #endif // _ZEPHYR__VERBOSE_
     step_counter = 0;
 
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
+    k_sleep(timeout);
+    // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
   }
 }
 

@@ -106,10 +106,9 @@ task1()
     print_console_int(loop_counter_1);
     print_console_newline();
 #endif // _ZEPHYR__VERBOSE_
-    measurements_hires__start_measurement();
     if (loop_counter_1 == NUM_OF_LOOPS)
     {
-      measurements_hires__end_measurement();
+      // measurements_hires__end_measurement();
 #ifdef _ZEPHYR__VERBOSE_
       print_console ("L1= ");
       print_console_int (loop_counter_1);
@@ -131,8 +130,9 @@ task1()
     }
     loop_counter_1++;
 
-    TS_INC(next_time1, period1);
-    //clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
+    //TS_INC(next_time1, period1);
+    //clock_nanosleep(CL1OCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
+    measurements_hires__start_measurement();
     k_sleep(period1_k);
     // delay until Ada.Real_Time.Time_First;
   }
@@ -143,6 +143,7 @@ task2()
 {
   while (1)
   { 
+    measurements_hires__end_measurement();
 #ifdef _ZEPHYR__VERBOSE_
     print_console("Task 2");
     print_console(" Loop_counter: ");

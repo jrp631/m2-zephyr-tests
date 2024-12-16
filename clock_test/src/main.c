@@ -11,7 +11,9 @@ int main(int argc, char **argv)
   m2osinit();
   console_init(115200);
   print_console("\nMain starts\n");
-
+  print_console("Clock Sys CLock Ticks per sec: ");
+  print_console_int(CONFIG_SYS_CLOCK_TICKS_PER_SEC);
+  print_console_newline();
   print_console("Clock Test\n");
   print_console("NUM_OF_LOOPS: ");
   print_console_int(NUM_OF_LOOPS);

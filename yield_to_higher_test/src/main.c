@@ -17,12 +17,6 @@ volatile int step_counter = 0;
 
 sem_t sem;
 
-/*
- * Metodos que necesitaremos usar de semaforos
- *  -> sem_init?
- *  -> sem_wait
- *  -> sem_post
- * */
 
 //********//
 // TASK-H //
@@ -88,7 +82,6 @@ task_l()
 
     tests_reports__assert(step_counter == 0);
     step_counter++;
-
     sem_post(&sem); // activate task h
     // suspension_set_true (&so); // activate task h //FIXME -> REMOVE ONLY USED IN M2
 

@@ -7,7 +7,7 @@ THREAD_POOL(2);
 
 K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
-#define NUM_OF_LOOPS 300 
+#define NUM_OF_LOOPS 300
 
 sem_t sem1;
 sem_t sem2;
@@ -61,7 +61,9 @@ void *task1()
     loop_counter1++;
 
     if (loop_counter1 != 1)
+    {
       sem_post(&sem2);
+    }
     sem_wait(&sem1);
   }
 }
@@ -88,7 +90,6 @@ void *task2()
     // print_console("Task 2, sem_post sem1\n");
     sem_wait(&sem2);
     // print_console("Task 2, sem_wait sem2\n");
-
   }
 }
 

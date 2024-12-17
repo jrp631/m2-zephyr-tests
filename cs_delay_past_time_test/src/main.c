@@ -130,11 +130,8 @@ task1()
     }
     loop_counter_1++;
 
-    //TS_INC(next_time1, period1);
-    //clock_nanosleep(CL1OCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
     measurements_hires__start_measurement();
     k_sleep(period1_k);
-    // delay until Ada.Real_Time.Time_First;
   }
 }
 
@@ -152,8 +149,6 @@ task2()
 #endif // _ZEPHYR__VERBOSE_
     loop_counter_2++;
     TS_INC(next_time2, period2);
-    //clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time2, NULL);
     k_sleep(period2_k);
-    // delay until Ada.Real_Time.Time_First;
   }
 }

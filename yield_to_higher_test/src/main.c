@@ -13,8 +13,6 @@ K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 volatile int loop_counter = 1;
 volatile int step_counter = 0;
 
-// suspension_t so = SUSPENSION_INITIALIZER; // FIXME -> REMOVE ONLY USED IN M2
-
 sem_t sem;
 
 
@@ -35,10 +33,6 @@ task_h()
     print_console_newline();
 #endif //_ZEPHYR__VERBOSE_
 
-    // print_console ("SP: ");
-    // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
-    // print_console_newline ();
-
     if (loop_counter <= NUM_OF_LOOPS / 2)
     {
       measurements_hires__end_measurement();
@@ -49,7 +43,6 @@ task_h()
     {
       measurements_hires__start_measurement();
     }
-    // suspend_until_true (&so);
     sem_wait(&sem);
   }
 }
@@ -76,14 +69,9 @@ task_l()
     print_console_newline();
 #endif // _ZEPHYR__VERBOSE_
 
-    // print_console ("SP: ");
-    // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
-    // print_console_newline ();
-
     tests_reports__assert(step_counter == 0);
     step_counter++;
     sem_post(&sem); // activate task h
-    // suspension_set_true (&so); // activate task h //FIXME -> REMOVE ONLY USED IN M2
 
     tests_reports__eat(eat_time);
 
@@ -94,10 +82,6 @@ task_l()
     print_console_newline();
 #endif // _ZEPHYR__VERBOSE_
 
-    // print_console ("SP: ");
-    // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
-    // print_console_newline ();
-
     tests_reports__assert(step_counter == 1);
     step_counter++;
 
@@ -107,7 +91,6 @@ task_l()
     }
 
     k_yield();
-    // yield_to_higher (); //FIXME -> REMOVE ONLY USED IN M2 -> NEED EQUIVALENT IN ZEPHYR
 
     if (loop_counter > NUM_OF_LOOPS / 2)
     {
@@ -119,9 +102,6 @@ task_l()
     print_console_int(step_counter);
     print_console_newline();
 #endif // _ZEPHYR__VERBOSE_
-    // print_console ("SP: ");
-    // print_console_hex ((uint32_t)m2_hal_regs_get_sp_reg ());
-    // print_console_newline ();
 
     tests_reports__assert(step_counter == 3);
     step_counter++;
@@ -150,7 +130,6 @@ task_l()
     step_counter = 0;
 
     k_sleep(timeout);
-    // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
   }
 }
 
@@ -214,14 +193,6 @@ int main(int argc, char const *argv[])
   rc = pthread_create(&thread_l, &attr_l, task_l, NULL);
   if (rc != 0)
     handle_error_en(rc, "pthread_create");
-  /*
-   DIO.Put_Line ("TCB'Size" & Integer'Image (M2.Kernel.TCBs.TCB'Size));
-   DIO.Put_Line ("System.Thread_T_Size_In_Bytes" &
-                   Integer'Image (System.Thread_T_Size_In_Bytes));
-   Tests_Reports.Assert
-     (M2.Kernel.TCBs.TCB'Size = System.Thread_T_Size_In_Bytes * 8);*/
-
-  // suspension_suspend_until_true (&so); //FIXME -> REMOVE ONLY USED IN M2
 
   // join thread
   pthread_join(thread_h, NULL);

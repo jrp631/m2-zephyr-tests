@@ -81,15 +81,10 @@ void *task2()
     print_console_int(loop_counter2);
     print_console("\n");
 #endif // _ZEPHYR__VERBOSE_
-    // DIO.Put (Integer
-    //(Ada.Real_Time.To_Duration (Ada.Real_Time.Clock)));
 
     loop_counter2++;
-
     sem_post(&sem1);
-    // print_console("Task 2, sem_post sem1\n");
     sem_wait(&sem2);
-    // print_console("Task 2, sem_wait sem2\n");
   }
 }
 

@@ -100,6 +100,13 @@ task1()
 {
   while (1)
   {
+    if (loop_counter_1 > 0) {
+      measurements_hires__end_measurement();
+#ifdef _ZEPHYR__VERBOSE_
+      print_console("... End measurements task1\n");
+#endif // _ZEPHYR__VERBOSE_
+    }
+
 #ifdef _ZEPHYR__VERBOSE_
     print_console("Task 1");
     print_console(" Loop_counter: ");
@@ -129,7 +136,9 @@ task1()
       tests_reports__test_ok();
     }
     loop_counter_1++;
-
+#ifdef _ZEPHYR__VERBOSE_
+    print_console("Start measurements task1 ...");
+#endif // _ZEPHYR__VERBOSE_
     measurements_hires__start_measurement();
     k_sleep(period1_k);
   }
@@ -142,13 +151,18 @@ task2()
   { 
     measurements_hires__end_measurement();
 #ifdef _ZEPHYR__VERBOSE_
+    print_console("... End measurements task2\n");
     print_console("Task 2");
     print_console(" Loop_counter: ");
     print_console_int(loop_counter_2);
     print_console_newline();
 #endif // _ZEPHYR__VERBOSE_
     loop_counter_2++;
-    TS_INC(next_time2, period2);
+    // TS_INC(next_time2, period2);
+#ifdef _ZEPHYR__VERBOSE_
+    print_console("Start measurements task2 ...");
+#endif // _ZEPHYR__VERBOSE_
+    measurements_hires__start_measurement();
     k_sleep(period2_k);
   }
 }

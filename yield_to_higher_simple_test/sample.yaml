@@ -1,0 +1,16 @@
+sample:
+  description: Sample Posix Tesst
+    application
+  name: posix_app
+common:
+  tags: posix_app
+  integration_platforms:
+    - native_sim
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "Hello World! (.*)"
+tests:
+  sample.basic.helloworld:
+    tags: introduction

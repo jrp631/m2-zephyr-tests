@@ -1,7 +1,5 @@
 #include "../headers/headers.h"
 
-#include <semaphore.h>
-
 THREAD_POOL(2);
 
 #define NUM_THREADS 2
@@ -21,29 +19,29 @@ const struct timespec period_lp = TS(0, PERIOD_LP_NS);
 const struct timespec period_hp = TS(0, PERIOD_HP_NS);
 const struct timespec eat_lp = TS(0, PERIOD_HP_NS);
 
-#define ARRAY_SIZE 10
+#define BUFFER_SIZE 10
 
 void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%ld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
+  printf("%lld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
 }
 
-void check_stack_usage(k_tid_t thread, struct k_thread *thread_data)
-{
-  size_t total_stack = k_thread_stack_size_get(thread_data);
-  // size_t unused_stack = k_thread_stack_space_get(thread_data);
-  size_t *unused_ptr;
-  size_t unused_stack = k_thread_stack_space_get(thread, &unused_ptr);
-  size_t used_stack = total_stack - unused_stack;
+// void check_stack_usage(k_tid_t thread, struct k_thread *thread_data)
+// {
+//   size_t total_stack = k_thread_stack_size_get(thread_data);
+//   // size_t unused_stack = k_thread_stack_space_get(thread_data);
+//   size_t *unused_ptr;
+//   size_t unused_stack = k_thread_stack_space_get(thread, &unused_ptr);
+//   size_t used_stack = total_stack - unused_stack;
 
-  // get stack pointer
+//   // get stack pointer
 
-  printf("Stack total: %zu bytes\n", total_stack);
-  printf("Stack usado: %zu bytes\n", used_stack);
-  printf("Stack libre: %zu bytes\n", unused_stack);
-}
+//   printf("Stack total: %zu bytes\n", total_stack);
+//   printf("Stack usado: %zu bytes\n", used_stack);
+//   printf("Stack libre: %zu bytes\n", unused_stack);
+// }
 
 void print_stack_info(void)
 {
@@ -94,12 +92,12 @@ task_l()
     counter_lp++;
 
     const int value = 10 * counter_hp + counter_lp;
-    int a[ARRAY_SIZE];
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    int a[BUFFER_SIZE];
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       a[i] = value;
     }
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
@@ -114,7 +112,7 @@ task_l()
     puts_now("Thread LP: after yield_to_higher()\n");
     tests_reports__assert(counter_hp == counter_lp * 2);
 
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);

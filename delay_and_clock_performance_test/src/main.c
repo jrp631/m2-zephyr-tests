@@ -8,7 +8,8 @@ K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 // FIXME
 THREAD_POOL(1);
 
-#define PERIOD 800000000 // -> 0,8 seg
+#define PERIOD 80000000 // -> 0,08 seg
+#define NUM_OF_LOOPS 200
 const struct timespec period = TS(0, PERIOD);
 
 //*******//
@@ -20,51 +21,28 @@ int counter = 0;
 void *
 task()
 {
-  // FIXME: DEBERÍA IR EN EL MAIN?
-  // measurements_hires__init ();
-  if (counter == 0)
+  int rc;
+  while (counter < NUM_OF_LOOPS)
   {
-    measurements_hires__start_measurement();
-    clock_gettime(CLOCK_MONOTONIC, &next_time);
-    // Print next_time: DEBUG ONLY
-#ifdef _ZEPHYR__VERBOSE_
-    print_console("Initial time: ");
-    print_console_int(next_time.tv_sec);
-    print_console(".");
-    print_console_int(next_time.tv_nsec);
-    print_console_newline();
-#endif // _ZEPHYR__VERBOSE_
-  }
-  //
-
-  while (1)
-  {
-  #ifdef _ZEPHYR__VERBOSE_
-    print_console ("Task\n");
-  #endif // _ZEPHYR__VERBOSE_
-    //  TODO: Completar
-    if (counter == 1)
+    if (counter % 2 == 0)
     {
-
+      // printf("Task : %d\n", counter);
+      counter++;
+      //clock_gettime(CLOCK_MONOTONIC, &next_time);
+      //TS_INC(next_time, period);
+      measurements_hires__start_measurement();
+      k_sleep(K_MSEC(80));
+      //rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
+      //printf("RC : %d\n", rc);
+    } else if (counter % 2 == 1)
+    {
       measurements_hires__end_measurement();
-      measurements_hires__finish();
-
-      // Get time and print it: DEBUG ONLY
-#ifdef _ZEPHYR__VERBOSE_
-       clock_gettime (CLOCK_MONOTONIC, &next_time);
-       print_console ("After sleep time: ");
-       print_console_int (next_time.tv_sec);
-       print_console (".");
-       print_console_int (next_time.tv_nsec);
-       print_console_newline ();
-#endif // _ZEPHYR__VERBOSE_
-      tests_reports__test_ok();
+      counter++;
+      // printf("Task ends\n");
     }
-    counter++;
-    TS_INC(next_time, period);
-
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
   }
+  measurements_hires__finish();
+  tests_reports__test_ok();
 }
 
 int main(int argc, char const *argv[])
@@ -110,43 +88,3 @@ int main(int argc, char const *argv[])
 
   return 0;
 }
-// #include "../headers/headers.h"
-
-// #define PERIOD 800000000 // -> 0,8 seg
-// const struct timespec period = TS (0, PERIOD);
-
-
-// int main(int argc, char const *argv[])
-// {
-
-//   int counter = 0;
-//   struct timespec next_time;
-
-//   m2osinit();
-//   check_posix_api();
-//   console_init(115200);
-
-//   print_console("\nDelay and Clock Performance Test\n");
-
-//   print_console("\nMain\n");
-
-//   measurements_hires__init();
-//   measurements_hires__start_measurement();  
-
-//   clock_gettime(CLOCK_MONOTONIC, &next_time);
-
-//   while (1) {
-//     print_console("looping...\n");
-//     if (counter == 1) {
-//       measurements_hires__end_measurement();
-//       measurements_hires__finish();
-//       tests_reports__test_ok();
-//     }
-//     counter++;
-//     TS_INC(next_time, period);
-//     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
-//   }
-
-//   print_console("\nMain ends\n");
-//   return 0;
-// }

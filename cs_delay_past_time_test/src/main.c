@@ -21,7 +21,7 @@ struct timespec next_time1;
 
 // task 2 vars
 int loop_counter_2 = 0;
-const int NUM_OF_LOOPS = 300;
+const int NUM_OF_LOOPS = 500;
 struct timespec next_time2;
 
 void *task1();
@@ -140,7 +140,8 @@ task1()
     print_console("Start measurements task1 ...");
 #endif // _ZEPHYR__VERBOSE_
     measurements_hires__start_measurement();
-    k_sleep(period1_k);
+    // k_sleep(period1_k);
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &period1, NULL);
   }
 }
 
@@ -163,6 +164,7 @@ task2()
     print_console("Start measurements task2 ...");
 #endif // _ZEPHYR__VERBOSE_
     measurements_hires__start_measurement();
-    k_sleep(period2_k);
+    // k_sleep(period2_k);
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &period2, NULL);
   }
 }

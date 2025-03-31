@@ -35,13 +35,13 @@ const struct timespec period_hp = TS(0, PERIOD_HP_NS);
 const struct timespec eat_lp = TS(0, PERIOD_MP_NS);
 const struct timespec eat_mp = TS(0, PERIOD_HP_NS);
 
-#define ARRAY_SIZE 10
+#define BUFFER_SIZE 10
 
 void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%ld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
+  printf("%lld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
 }
 
 void print_stack_info(void)
@@ -97,12 +97,12 @@ task_l()
       tests_reports__test_ok();
     }
     const int value = 100 * count_hp + 10 * count_mp + count_lp;
-    int a[ARRAY_SIZE];
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    int a[BUFFER_SIZE];
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       a[i] = value;
     }
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
@@ -120,13 +120,13 @@ task_l()
     tests_reports__assert(stack_before == get_stack_pointer());
     puts_now("Task LP: Thread LP: after k_yield()\n");
 
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
-    test_reports__assert(count_hp == 2 && count_mp == 2 && count_lp == 1);
+    tests_reports__assert(count_hp == 2 && count_mp == 2 && count_lp == 1);
     printf("Task LP: Thread LP: clock_nanosleep()\n");
     TS_INC(next_activation_time_lp, period_lp);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_lp, NULL);
@@ -146,7 +146,7 @@ task_m()
 {
   while (1)
   {
-    puts_now("Task MP\N");
+    puts_now("Task MP\n");
     print_thread_stack_base();
     print_stack_pointer();
     print_stack_info();
@@ -162,12 +162,12 @@ task_m()
     }
 
     const int value = 100 * count_hp + 10 * count_mp + count_lp;
-    int a[ARRAY_SIZE];
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    int a[BUFFER_SIZE];
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       a[i] = value;
     }
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
       printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
@@ -190,10 +190,9 @@ task_m()
     tests_reports__assert((count_mp == 2 && count_hp == 2 && count_lp == 1) ||
                           (count_mp == 3 && count_hp == 3 && count_lp == 1));
 
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      putint(a[i]);
-      puts(" ");
+      printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     puts("\n");
@@ -256,7 +255,7 @@ int main(int argc, char const *argv[])
 
   // init measurements
 
-  print_console("\Yield to higher chained test\n");
+  print_console("\nYield to higher chained test\n");
   print_console("\nMain starts\n");
   // CODE HERE
   print_stack_pointer();

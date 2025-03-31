@@ -8,9 +8,9 @@ THREAD_POOL(2);
 K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
 #define NUM_OF_LOOPS 20
-#define PERIOD1_NS 20000000 // -> 20ms 
+#define PERIOD1_NS 20000000 // -> 20ms
 
-const struct timespec period1 = TS(0, 0);
+const struct timespec period1 = TS(0, PERIOD1_NS);
 
 int loop_counter_1 = 0;
 struct timespec start_time_t1;
@@ -21,7 +21,7 @@ bool other_task_executed = false;
 //*******//
 // TASK1 //
 //*******//
-struct timespec next_time1;
+struct timespec next_time1 = TS(0, 0);
 k_timeout_t period1_k = K_MSEC(0);
 k_timeout_t next_time1_k = K_MSEC(20);
 
@@ -32,7 +32,7 @@ task1()
   {
 #ifdef _ZEPHYR__VERBOSE_
     print_console("Task1\n");
-#endif // _ZEPHYR__VERBOSE_
+#endif                                  // _ZEPHYR__VERBOSE_
     if (loop_counter_1 == NUM_OF_LOOPS) // cs time
     {
 #ifdef _ZEPHYR__VERBOSE_
@@ -49,14 +49,17 @@ task1()
     }
     loop_counter_1++;
     other_task_executed = false;
-#ifdef _ZEPHYR__VERBOSE_    
+    clock_gettime(CLOCK_MONOTONIC, &next_time1);
+
+#ifdef _ZEPHYR__VERBOSE_
     print_console("Start measurements task1 ....");
 #endif // _ZEPHYR__VERBOSE_
     measurements_hires__start_measurement();
 
-    k_sleep(next_time1_k);
-
-    // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
+    // k_sleep(next_time1_k);
+    TS_INC(next_time1, period1);
+    int rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time1, NULL);
+    // printf("RC : %d\n", rc);
   }
 }
 
@@ -74,7 +77,7 @@ other_task()
     if (!other_task_executed)
     {
       measurements_hires__end_measurement();
-#ifdef _ZEPHYR__VERBOSE_      
+#ifdef _ZEPHYR__VERBOSE_
       print_console("... End measurements other task\n");
 #endif // _ZEPHYR__VERBOSE_
     }
@@ -84,7 +87,9 @@ other_task()
 #endif // _ZEPHYR__VERBOSE_
 
     other_task_executed = true;
-    k_sleep(period_other_k); // sleeps 0;
+    // k_sleep(period_other_k); // sleeps 0;
+
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time_other, NULL);
   }
 }
 

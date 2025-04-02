@@ -55,6 +55,13 @@ void print_stack_info(void)
   printf("Stack size: %zu bytes\n", stack_size);
 }
 
+void print_stack_size(void)
+{
+  struct k_thread *current_thread = k_current_get();
+  size_t stack_size = current_thread->stack_info.size;
+  printf("Stack size: %zu bytes\n", stack_size);
+}
+
 void print_thread_stack_base(void)
 {
   printk("Stack base: %p\n", thread_stack);
@@ -116,6 +123,7 @@ task_l()
     puts_now("Task LP: Thread LP: k_yield()\n");
     // const int stack_before = m2_hal_regs_get_sp_reg();
     const uint32_t stack_before = get_stack_pointer();
+    print_stack_size();
     k_yield();
     tests_reports__assert(stack_before == get_stack_pointer());
     puts_now("Task LP: Thread LP: after k_yield()\n");
@@ -129,6 +137,7 @@ task_l()
     tests_reports__assert(count_hp == 2 && count_mp == 2 && count_lp == 1);
     printf("Task LP: Thread LP: clock_nanosleep()\n");
     TS_INC(next_activation_time_lp, period_lp);
+    printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_lp.tv_sec, next_activation_time_lp.tv_nsec);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_lp, NULL);
   }
   return NULL;
@@ -158,49 +167,54 @@ task_m()
       tests_reports__assert(count_hp == 1 && count_lp == 0);
       puts_now("Task MP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_mp, period_mp);
+      printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_mp, NULL);
     }
-
-    const int value = 100 * count_hp + 10 * count_mp + count_lp;
-    int a[BUFFER_SIZE];
-    for (int i = 0; i < BUFFER_SIZE; i++)
+    else
     {
-      a[i] = value;
-    }
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-      printf("a[%d] = %d\n", i, a[i]);
-      tests_reports__assert(a[i] == value);
-    }
-    printf("\n");
+      const int value = 100 * count_hp + 10 * count_mp + count_lp;
+      int a[BUFFER_SIZE];
+      for (int i = 0; i < BUFFER_SIZE; i++)
+      {
+        a[i] = value;
+      }
+      for (int i = 0; i < BUFFER_SIZE; i++)
+      {
+        printf("a[%d] = %d\n", i, a[i]);
+        tests_reports__assert(a[i] == value);
+      }
+      printf("\n");
 
-    if (count_mp == 2)
-    {
-      puts_now("Thread MP: eat\n");
-      tests_reports__eat(eat_mp);
+      if (count_mp == 2)
+      {
+        puts_now("Thread MP: eat\n");
+        tests_reports__eat(eat_mp);
+      }
+      tests_reports__assert((count_mp == 2 && count_hp == 1 && count_lp == 1) ||
+                            (count_mp == 3 && count_hp == 3 && count_lp == 1));
+      puts_now("Thread MP: before k_yield()\n");
+      const int stack_before = get_stack_pointer();
+      print_stack_size();
+      k_yield();
+      tests_reports__assert(stack_before == get_stack_pointer());
+      puts_now("Thread MP: after yield_to_higher()\n");
+
+      tests_reports__assert((count_mp == 2 && count_hp == 2 && count_lp == 1) ||
+                            (count_mp == 3 && count_hp == 3 && count_lp == 1));
+
+      for (int i = 0; i < BUFFER_SIZE; i++)
+      {
+        printf("a[%d] = %d\n", i, a[i]);
+        tests_reports__assert(a[i] == value);
+      }
+      puts("\n");
+
+      puts_now("Thread MP: clock_nanosleep()\n");
+      TS_INC(next_activation_time_mp, period_mp); // XXX lp
+      printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
+      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
+                      &next_activation_time_mp, NULL); // XXX lp
     }
-    tests_reports__assert((count_mp == 2 && count_hp == 1 && count_lp == 1) ||
-                          (count_mp == 3 && count_hp == 3 && count_lp == 1));
-    puts_now("Thread MP: before k_yield()\n");
-    const int stack_before = get_stack_pointer();
-    k_yield();
-    tests_reports__assert(stack_before == get_stack_pointer());
-    puts_now("Thread MP: after yield_to_higher()\n");
-
-    tests_reports__assert((count_mp == 2 && count_hp == 2 && count_lp == 1) ||
-                          (count_mp == 3 && count_hp == 3 && count_lp == 1));
-
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-      printf("a[%d] = %d\n", i, a[i]);
-      tests_reports__assert(a[i] == value);
-    }
-    puts("\n");
-
-    puts_now("Thread MP: clock_nanosleep()\n");
-    TS_INC(next_activation_time_mp, period_mp); // XXX lp
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
-                    &next_activation_time_mp, NULL); // XXX lp
   }
 }
 
@@ -228,12 +242,18 @@ task_h()
       tests_reports__assert(count_hp == 1 && count_lp == 0 && count_mp == 0);
       puts_now("Task HP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
+      printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
     }
-    tests_reports__assert(count_mp == 2 && count_lp == 1);
-    puts_now("Task HP: clock_nanosleep()\n");
-    TS_INC(next_activation_time_hp, period_hp);
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
+    else
+    {
+      printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
+      tests_reports__assert(count_mp == 2 && count_lp == 1);
+      puts_now("Task HP: clock_nanosleep()\n");
+      TS_INC(next_activation_time_hp, period_hp);
+      printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
+    }
   }
 
   return NULL;
@@ -245,9 +265,9 @@ int main(int argc, char const *argv[])
 
   pthread_t thread_h, thread_l, thread_m;
   pthread_attr_t attr_h, attr_l, attr_m;
-  struct sched_param sch_param_h = {.sched_priority = 30};
-  struct sched_param sch_param_m = {.sched_priority = 20};
-  struct sched_param sch_param_l = {.sched_priority = 10};
+  struct sched_param sch_param_h = {.sched_priority = 15};
+  struct sched_param sch_param_m = {.sched_priority = 10};
+  struct sched_param sch_param_l = {.sched_priority = 5};
 
   m2osinit();
   check_posix_api();
@@ -284,13 +304,13 @@ int main(int argc, char const *argv[])
   // Prioridades
   rc = pthread_attr_setschedparam(&attr_h, &sch_param_h);
   if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam");
+    handle_error_en(rc, "pthread_attr_setschedparam h");
   rc = pthread_attr_setschedparam(&attr_m, &sch_param_m);
   if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam");
+    handle_error_en(rc, "pthread_attr_setschedparam m");
   rc = pthread_attr_setschedparam(&attr_l, &sch_param_l);
   if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam");
+    handle_error_en(rc, "pthread_attr_setschedparam l");
 
   // Thread stack
   rc = pthread_attr_setstack(&attr_h, thread_stack[0], STACK_SIZE);

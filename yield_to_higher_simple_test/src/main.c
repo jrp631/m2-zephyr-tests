@@ -1,3 +1,13 @@
+// Simple test of yield_to_higher() using the M2OS POSIX-like layer.
+// The high priority thread (thread_body_hp) is always ready when thread_body_lp
+// calls yield_to_higher().
+//
+// th_hp #......._#......#......._#......#..   ���       ^ = thread activation
+//       ^       ^       ^       ^       ^               # = thread execution
+// th_lp .########.#......########.#......##   ���       _ = thread active
+//        ^       y       ^      y        ^              . = thread suspended
+//       0       1       2       3       4               y = yield_to_higher
+//
 #include "../headers/headers.h"
 
 THREAD_POOL(2);
@@ -54,6 +64,13 @@ void print_stack_info(void)
   printf("Stack size: %zu bytes\n", stack_size);
 }
 
+void print_stack_size(void)
+{
+  struct k_thread *current_thread = k_current_get();
+  size_t stack_size = current_thread->stack_info.size;
+  printf("Stack size: %zu bytes\n", stack_size);
+}
+
 void print_thread_stack_base(void)
 {
   printk("Stack base: %p\n", thread_stack);
@@ -88,7 +105,8 @@ task_l()
     print_stack_pointer();
     print_stack_info();
 
-    tests_reports__assert(counter_hp / 2 == counter_lp * 2 + 1);
+    printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
+    tests_reports__assert(counter_hp == counter_lp * 2 + 1);
     counter_lp++;
 
     const int value = 10 * counter_hp + counter_lp;
@@ -107,9 +125,11 @@ task_l()
     tests_reports__eat(eat_lp);
     puts_now("Task LP: Thread LP: before yield_to_higher()\n");
     const int stack_before = get_stack_pointer();
+    print_stack_size();
     k_yield(); // FIXME -> revisar si es la llamada correcta
     tests_reports__assert(stack_before == get_stack_pointer());
     puts_now("Thread LP: after yield_to_higher()\n");
+    printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
     tests_reports__assert(counter_hp == counter_lp * 2);
 
     for (int i = 0; i < BUFFER_SIZE; i++)
@@ -120,6 +140,7 @@ task_l()
 
     printf("\n");
     puts_now("Task LP: Thread LP: clock_nanosleep()\n");
+    printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_ls.tv_sec, next_activation_time_ls.tv_nsec);
     TS_INC(next_activation_time_ls, period_lp);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_ls, NULL);
   }
@@ -151,6 +172,7 @@ task_h()
     }
     puts_now("Task HP: clock_nanosleep()\n");
     TS_INC(next_activation_time_hp, period_hp);
+    printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
   }
 
@@ -165,8 +187,8 @@ int main(int argc, char const *argv[])
 
   pthread_t thread_h, thread_l;
   pthread_attr_t attr_h, attr_l;
-  struct sched_param sch_param_h = {.sched_priority = 20};
-  struct sched_param sch_param_l = {.sched_priority = 10};
+  struct sched_param sch_param_h = {.sched_priority = 10};
+  struct sched_param sch_param_l = {.sched_priority = 5};
 
   m2osinit();
   check_posix_api();
@@ -219,6 +241,7 @@ int main(int argc, char const *argv[])
   print_stack_info();
   print_thread_stack_base();
   print_stack_info();
+  printf("\n");
 
   // Create threads
   rc = pthread_create(&thread_h, &attr_h, task_h, NULL);

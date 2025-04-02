@@ -41,7 +41,9 @@ void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%lld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
+  printf("%lld", now.tv_sec); printf("s");
+  printf("%ld", now.tv_nsec / 100000); printf("ms ");
+  printf(msg);
 }
 
 // void check_stack_usage(k_tid_t thread, struct k_thread *thread_data)
@@ -75,19 +77,19 @@ void print_stack_size(void)
   printf("Stack size: %zu bytes\n", stack_size);
 }
 
-void print_thread_stack_base(void)
+static inline void print_thread_stack_base(void)
 {
   printk("Stack base: %p\n", thread_stack);
 }
 
-uint32_t get_stack_pointer(void)
+static inline uint32_t get_stack_pointer(void)
 {
   uint32_t sp;
   __asm volatile("mov %0, sp" : "=r"(sp));
   return sp;
 }
 
-void print_stack_pointer(void)
+static inline void print_stack_pointer(void)
 {
   uint32_t sp = get_stack_pointer();
   printk("Stack Pointer actual: %p\n", (void *)sp);
@@ -105,6 +107,7 @@ task_l()
 
   while (1)
   {
+    printf("\n");
     puts_now("Task LP\n");
     print_thread_stack_base();
     print_stack_pointer();
@@ -119,7 +122,8 @@ task_l()
     }
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ", a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
@@ -148,7 +152,8 @@ task_l()
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ",  a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
@@ -175,6 +180,7 @@ task_m()
 
   while (1)
   {
+    printf("\n");
     puts_now("Task MP\n");
     print_thread_stack_base();
     print_stack_pointer();
@@ -185,7 +191,6 @@ task_m()
     if (first_activation_m)
     {
       first_activation_m = 0;
-      printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
 
       tests_reports__assert(count_hp == 1 && count_mp == 1 && count_lp == 0);
       puts_now("Task MP: first clock_nanosleep()\n");
@@ -216,6 +221,7 @@ task_h()
 
   while (1)
   {
+    printf("\n");
     puts_now("Task HP\n");
     print_thread_stack_base();
     print_stack_pointer();
@@ -227,7 +233,6 @@ task_h()
     if (first_activation_hp)
     {
       first_activation_hp = 0;
-      printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
       tests_reports__assert(count_hp == 1 && count_lp == 0 && count_mp == 0);
       puts_now("Task HP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
@@ -235,7 +240,6 @@ task_h()
     }
     else
     {
-      printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
       tests_reports__assert(count_mp == count_hp - 1 && count_lp == 1);
       puts_now("Task HP: clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
@@ -260,9 +264,8 @@ int main(int argc, char const *argv[])
   console_init(115200);
 
   // init measurements
-  measurements_hires__init();
 
-  print_console("\n Yield to higher twi in window test\n");
+  print_console("\n Yield to higher two in window test\n");
   print_console("\nMain starts\n");
   // CODE HERE
   print_stack_pointer();

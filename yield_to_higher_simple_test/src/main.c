@@ -25,6 +25,7 @@ K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 #define PERIOD_HP_NS 100000000
 #define DELAY_ACTIVATION_LP_NS (PERIOD_HP_NS / 10)
 
+
 const struct timespec period_lp = TS(0, PERIOD_LP_NS);
 const struct timespec period_hp = TS(0, PERIOD_HP_NS);
 const struct timespec eat_lp = TS(0, PERIOD_HP_NS);
@@ -35,7 +36,9 @@ void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%lld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
+  printf("%lld", now.tv_sec); printf("s");
+  printf("%ld", now.tv_nsec / 100000); printf("ms ");
+  puts(msg);
 }
 
 // void check_stack_usage(k_tid_t thread, struct k_thread *thread_data)
@@ -93,7 +96,7 @@ void print_stack_pointer(void)
 // TASK-L //
 //********//
 
-struct timespec next_activation_time_ls = TS(0, 0);
+struct timespec next_activation_time_lp = TS(0, 0);
 
 void *
 task_l()
@@ -105,7 +108,7 @@ task_l()
     print_stack_pointer();
     print_stack_info();
 
-    printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
+    // printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
     tests_reports__assert(counter_hp == counter_lp * 2 + 1);
     counter_lp++;
 
@@ -117,7 +120,8 @@ task_l()
     }
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ", a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
@@ -129,20 +133,21 @@ task_l()
     k_yield(); // FIXME -> revisar si es la llamada correcta
     tests_reports__assert(stack_before == get_stack_pointer());
     puts_now("Thread LP: after yield_to_higher()\n");
-    printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
+    // printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
     tests_reports__assert(counter_hp == counter_lp * 2);
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ", a[i]);
       tests_reports__assert(a[i] == value);
     }
 
     printf("\n");
     puts_now("Task LP: Thread LP: clock_nanosleep()\n");
-    printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_ls.tv_sec, next_activation_time_ls.tv_nsec);
-    TS_INC(next_activation_time_ls, period_lp);
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_ls, NULL);
+    // printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_lp.tv_sec, next_activation_time_lp.tv_nsec);
+    TS_INC(next_activation_time_lp, period_lp);
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_lp, NULL);
   }
 
   return NULL;
@@ -172,7 +177,7 @@ task_h()
     }
     puts_now("Task HP: clock_nanosleep()\n");
     TS_INC(next_activation_time_hp, period_hp);
-    printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+    // printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
   }
 
@@ -201,8 +206,8 @@ int main(int argc, char const *argv[])
   print_stack_info();
 
   clock_gettime(CLOCK_MONOTONIC, &next_activation_time_hp);
-  const struct timespec delay_activation_hp = TS(0, DELAY_ACTIVATION_LP_NS);
-  TS_ADD(next_activation_time_hp, next_activation_time_hp, delay_activation_hp);
+  const struct timespec delay_activation_lp = TS(0, DELAY_ACTIVATION_LP_NS);
+  TS_ADD(next_activation_time_lp, next_activation_time_hp, delay_activation_lp);
 
   pthread_attr_init(&attr_h);
   pthread_attr_init(&attr_l);
@@ -237,7 +242,6 @@ int main(int argc, char const *argv[])
 
   // main ends
   printf("Main ends\n");
-  // check_stack_usage();
   print_stack_info();
   print_thread_stack_base();
   print_stack_info();

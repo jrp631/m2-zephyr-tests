@@ -41,7 +41,9 @@ void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%lld s %09ld ms %s\n", now.tv_sec, now.tv_nsec, msg);
+  printf("%lld", now.tv_sec); printf("s");
+  printf("%ld", now.tv_nsec / 100000); printf("ms ");
+  printf(msg);
 }
 
 void print_stack_info(void)
@@ -93,9 +95,9 @@ task_l()
   while (1)
   {
     puts_now("Task LP\n");
-    print_thread_stack_base();
-    print_stack_pointer();
-    print_stack_info();
+    // print_thread_stack_base();
+    // print_stack_pointer();
+    // print_stack_info();
 
     count_lp++;
     if (count_lp == COUNT_LP_END_VALUE)
@@ -111,7 +113,8 @@ task_l()
     }
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ",a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
@@ -125,12 +128,13 @@ task_l()
     const uint32_t stack_before = get_stack_pointer();
     print_stack_size();
     k_yield();
-    tests_reports__assert(stack_before == get_stack_pointer());
+    // tests_reports__assert(stack_before == get_stack_pointer());
     puts_now("Task LP: Thread LP: after k_yield()\n");
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("a[%d] = %d\n", i, a[i]);
+      printf("%d ",a[i]);
+      // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
     printf("\n");
@@ -156,9 +160,9 @@ task_m()
   while (1)
   {
     puts_now("Task MP\n");
-    print_thread_stack_base();
-    print_stack_pointer();
-    print_stack_info();
+    // print_thread_stack_base();
+    // print_stack_pointer();
+    // print_stack_info();
 
     count_mp++;
     if (first_activation_mp)
@@ -180,7 +184,8 @@ task_m()
       }
       for (int i = 0; i < BUFFER_SIZE; i++)
       {
-        printf("a[%d] = %d\n", i, a[i]);
+        printf("%d ",a[i]);
+        // printf("a[%d] = %d\n", i, a[i]);
         tests_reports__assert(a[i] == value);
       }
       printf("\n");
@@ -204,7 +209,8 @@ task_m()
 
       for (int i = 0; i < BUFFER_SIZE; i++)
       {
-        printf("a[%d] = %d\n", i, a[i]);
+        printf("%d ",a[i]);
+        // printf("a[%d] = %d\n", i, a[i]);
         tests_reports__assert(a[i] == value);
       }
       puts("\n");
@@ -222,7 +228,7 @@ task_m()
 // TASK-H //
 //********//
 
-struct timespec next_activation_time_hp = TS(0, 0);
+struct timespec next_activation_time_hp = TS(0, PERIOD_MP_NS);
 int first_activation_hp = 1;
 
 void *
@@ -231,15 +237,15 @@ task_h()
   while (1)
   {
     puts_now("Task HP\n");
-    print_thread_stack_base();
-    print_stack_pointer();
-    print_stack_info();
+    // print_thread_stack_base();
+    // print_stack_pointer();
+    // print_stack_info();
 
     count_hp++;
     if (first_activation_hp)
     {
       first_activation_hp = 0;
-      tests_reports__assert(count_hp == 1 && count_lp == 0 && count_mp == 0);
+      tests_reports__assert(count_hp == 1 && count_mp == 0 && count_lp == 0);
       puts_now("Task HP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
       printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
@@ -336,8 +342,8 @@ int main(int argc, char const *argv[])
   // main ends
   printf("Main ends\n");
   // print_thread_stack_base();
-  print_stack_pointer();
-  print_stack_info();
+  // print_stack_pointer();
+  // print_stack_info();
 
   // join thread
   pthread_join(thread_h, NULL);

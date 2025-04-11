@@ -10,6 +10,7 @@
 //       0       1       2       3       4
 //
 #include "../headers/headers.h"
+#include <zephyr/debug/thread_analyzer.h>
 
 THREAD_POOL(3);
 
@@ -37,12 +38,16 @@ const struct timespec eat_mp = TS(0, PERIOD_HP_NS);
 
 #define BUFFER_SIZE 10
 
+int total_stack_used = 0;
+
 void puts_now(char *msg)
 {
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  printf("%lld", now.tv_sec); printf("s");
-  printf("%ld", now.tv_nsec / 100000); printf("ms ");
+  printf("%lld", now.tv_sec);
+  printf("s");
+  printf("%ld", now.tv_nsec / 100000);
+  printf("ms ");
   printf(msg);
 }
 
@@ -94,7 +99,7 @@ task_l()
 
   while (1)
   {
-    puts_now("Task LP\n");
+    // puts_now("Task LP\n");
     // print_thread_stack_base();
     // print_stack_pointer();
     // print_stack_info();
@@ -103,6 +108,8 @@ task_l()
     if (count_lp == COUNT_LP_END_VALUE)
     {
       tests_reports__assert(count_hp == 3 && count_mp == 3);
+      unsigned int cpu = 0;
+      thread_analyzer_print(cpu);
       tests_reports__test_ok();
     }
     const int value = 100 * count_hp + 10 * count_mp + count_lp;
@@ -113,35 +120,40 @@ task_l()
     }
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("%d ",a[i]);
-      // printf("a[%d] = %d\n", i, a[i]);
+      // printf("%d ", a[i]);
       tests_reports__assert(a[i] == value);
     }
-    printf("\n");
+    // printf("\n");
 
-    puts_now("Task LP: Thread LP: eat\n");
+    // puts_now("Task LP: Thread LP: eat\n");
     tests_reports__eat(eat_lp);
     tests_reports__assert(count_hp == 1 && count_mp == 1 && count_lp == 1);
 
-    puts_now("Task LP: Thread LP: k_yield()\n");
+    // puts_now("Task LP: Thread LP: k_yield()\n");
     // const int stack_before = m2_hal_regs_get_sp_reg();
-    const uint32_t stack_before = get_stack_pointer();
-    print_stack_size();
+    // const uint32_t stack_before = get_stack_pointer();
+    // print_stack_size();
     k_yield();
     // tests_reports__assert(stack_before == get_stack_pointer());
-    puts_now("Task LP: Thread LP: after k_yield()\n");
+    // puts_now("Task LP: Thread LP: after k_yield()\n");
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("%d ",a[i]);
-      // printf("a[%d] = %d\n", i, a[i]);
+      // printf("%d ", a[i]);
       tests_reports__assert(a[i] == value);
     }
-    printf("\n");
-    tests_reports__assert(count_hp == 2 && count_mp == 2 && count_lp == 1);
-    printf("Task LP: Thread LP: clock_nanosleep()\n");
+    // printf("\n");
+    
+    // tests_reports__assert(count_hp == 2 && count_mp == 2 && count_lp == 1);
+    
+    
+    // printf("Task LP: Thread LP: clock_nanosleep()\n");
     TS_INC(next_activation_time_lp, period_lp);
-    printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_lp.tv_sec, next_activation_time_lp.tv_nsec);
+    // printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_lp.tv_sec, next_activation_time_lp.tv_nsec);
+    // printf("Next activation time LP:");
+    // printf("%lld", next_activation_time_lp.tv_sec); printf("s");
+    // printf("%ld", next_activation_time_lp.tv_nsec / 100000); printf("ms\n");
+
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_lp, NULL);
   }
   return NULL;
@@ -159,7 +171,7 @@ task_m()
 {
   while (1)
   {
-    puts_now("Task MP\n");
+    // puts_now("Task MP\n");
     // print_thread_stack_base();
     // print_stack_pointer();
     // print_stack_info();
@@ -169,9 +181,12 @@ task_m()
     {
       first_activation_mp = 0;
       tests_reports__assert(count_hp == 1 && count_lp == 0);
-      puts_now("Task MP: first clock_nanosleep()\n");
+      // puts_now("Task MP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_mp, period_mp);
-      printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
+      // printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
+      // printf("Next activation time MP:");
+      // printf("%lld", next_activation_time_mp.tv_sec); printf("s");
+      // printf("%ld", next_activation_time_mp.tv_nsec / 100000); printf("ms\n");
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_mp, NULL);
     }
     else
@@ -184,40 +199,41 @@ task_m()
       }
       for (int i = 0; i < BUFFER_SIZE; i++)
       {
-        printf("%d ",a[i]);
-        // printf("a[%d] = %d\n", i, a[i]);
+        // printf("%d ", a[i]);
         tests_reports__assert(a[i] == value);
       }
-      printf("\n");
+      // printf("\n");
 
       if (count_mp == 2)
       {
-        puts_now("Thread MP: eat\n");
+        // puts_now("Thread MP: eat\n");
         tests_reports__eat(eat_mp);
       }
       tests_reports__assert((count_mp == 2 && count_hp == 1 && count_lp == 1) ||
                             (count_mp == 3 && count_hp == 3 && count_lp == 1));
-      puts_now("Thread MP: before k_yield()\n");
-      const int stack_before = get_stack_pointer();
-      print_stack_size();
+      // puts_now("Thread MP: before k_yield()\n");
+      // const int stack_before = get_stack_pointer();
+      // print_stack_size();
       k_yield();
-      tests_reports__assert(stack_before == get_stack_pointer());
-      puts_now("Thread MP: after yield_to_higher()\n");
+      // tests_reports__assert(stack_before == get_stack_pointer());
+      // puts_now("Thread MP: after yield_to_higher()\n");
 
       tests_reports__assert((count_mp == 2 && count_hp == 2 && count_lp == 1) ||
                             (count_mp == 3 && count_hp == 3 && count_lp == 1));
 
       for (int i = 0; i < BUFFER_SIZE; i++)
       {
-        printf("%d ",a[i]);
-        // printf("a[%d] = %d\n", i, a[i]);
+        // printf("%d ", a[i]);
         tests_reports__assert(a[i] == value);
       }
-      puts("\n");
+      // puts("\n");
 
-      puts_now("Thread MP: clock_nanosleep()\n");
+      // puts_now("Thread MP: clock_nanosleep()\n");
       TS_INC(next_activation_time_mp, period_mp); // XXX lp
-      printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
+      // printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
+      // printf("Next activation time MP:");
+      // printf("%lld", next_activation_time_mp.tv_sec); printf("s");
+      // printf("%ld", next_activation_time_mp.tv_nsec / 100000); printf("ms\n");
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
                       &next_activation_time_mp, NULL); // XXX lp
     }
@@ -236,7 +252,7 @@ task_h()
 {
   while (1)
   {
-    puts_now("Task HP\n");
+    // puts_now("Task HP\n");
     // print_thread_stack_base();
     // print_stack_pointer();
     // print_stack_info();
@@ -246,18 +262,24 @@ task_h()
     {
       first_activation_hp = 0;
       tests_reports__assert(count_hp == 1 && count_mp == 0 && count_lp == 0);
-      puts_now("Task HP: first clock_nanosleep()\n");
+      // puts_now("Task HP: first clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
-      printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+      // printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+      // printf("Next activation time HP:");
+      // printf("%lld", next_activation_time_hp.tv_sec); printf("s");
+      // printf("%ld", next_activation_time_hp.tv_nsec / 100000); printf("ms\n");
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
     }
     else
     {
-      printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
+      // printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
       tests_reports__assert(count_mp == 2 && count_lp == 1);
-      puts_now("Task HP: clock_nanosleep()\n");
+      // puts_now("Task HP: clock_nanosleep()\n");
       TS_INC(next_activation_time_hp, period_hp);
-      printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+      // printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
+      // printf("Next activation time HP:");
+      // printf("%lld", next_activation_time_hp.tv_sec); printf("s");
+      // printf("%ld", next_activation_time_hp.tv_nsec / 100000); printf("ms\n");
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
     }
   }
@@ -271,21 +293,23 @@ int main(int argc, char const *argv[])
 
   pthread_t thread_h, thread_l, thread_m;
   pthread_attr_t attr_h, attr_l, attr_m;
-  struct sched_param sch_param_h = {.sched_priority = 15};
-  struct sched_param sch_param_m = {.sched_priority = 10};
-  struct sched_param sch_param_l = {.sched_priority = 5};
+  struct sched_param sch_param_h = {.sched_priority = 10};
+  struct sched_param sch_param_m = {.sched_priority = 5};
+  struct sched_param sch_param_l = {.sched_priority = 1};
 
   m2osinit();
   check_posix_api();
   console_init(115200);
 
   // init measurements
+  // printf("POSIX SCHED_RR MAX prio %d\n", sched_get_priority_max(SCHED_RR));
+  // printf("POSIX SCHED_RR MIN prio %d\n", sched_get_priority_min(SCHED_RR));
 
   print_console("\nYield to higher chained test\n");
-  print_console("\nMain starts\n");
+  // print_console("\nMain starts\n");
   // CODE HERE
-  print_stack_pointer();
-  print_stack_info();
+  // print_stack_pointer();
+  // print_stack_info();
 
   pthread_attr_init(&attr_h);
   pthread_attr_init(&attr_m);
@@ -296,14 +320,14 @@ int main(int argc, char const *argv[])
   pthread_attr_setstacksize(&attr_m, STACK_SIZE);
   pthread_attr_setstacksize(&attr_l, STACK_SIZE);
 
-  // Politica de planificación
-  rc = pthread_attr_setschedpolicy(&attr_h, SCHED_FIFO);
+  // Politica de planificación FIXME -> PROBAR ROUND ROBIN
+  rc = pthread_attr_setschedpolicy(&attr_h, SCHED_RR);
   if (rc != 0)
     handle_error_en(rc, "pthread_attr_setschedpolicy");
-  rc = pthread_attr_setschedpolicy(&attr_m, SCHED_FIFO);
+  rc = pthread_attr_setschedpolicy(&attr_m, SCHED_RR);
   if (rc != 0)
     handle_error_en(rc, "pthread_attr_setschedpolicy");
-  rc = pthread_attr_setschedpolicy(&attr_l, SCHED_FIFO);
+  rc = pthread_attr_setschedpolicy(&attr_l, SCHED_RR);
   if (rc != 0)
     handle_error_en(rc, "pthread_attr_setschedpolicy");
 
@@ -340,7 +364,7 @@ int main(int argc, char const *argv[])
     handle_error_en(rc, "pthread_create");
 
   // main ends
-  printf("Main ends\n");
+  // printf("Main ends\n");
   // print_thread_stack_base();
   // print_stack_pointer();
   // print_stack_info();

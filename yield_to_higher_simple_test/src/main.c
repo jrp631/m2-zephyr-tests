@@ -9,6 +9,7 @@
 //       0       1       2       3       4               y = yield_to_higher
 //
 #include "../headers/headers.h"
+#include <zephyr/debug/thread_analyzer.h>
 
 THREAD_POOL(2);
 
@@ -55,6 +56,14 @@ void puts_now(char *msg)
 //   printf("Stack usado: %zu bytes\n", used_stack);
 //   printf("Stack libre: %zu bytes\n", unused_stack);
 // }
+
+void analyze_stack_usage(void)
+{
+  printk("---- Stack Analysis ----\n");
+  // thread_analyzer_run(thread_analyzer_print);
+  printk("------------------------\n");
+}
+
 
 void print_stack_info(void)
 {
@@ -103,10 +112,12 @@ task_l()
 {
   while (1)
   {
-    puts_now("Task LP\n");
-    print_thread_stack_base();
-    print_stack_pointer();
-    print_stack_info();
+    // puts_now("Task LP\n");
+    // print_thread_stack_base();
+    // print_stack_pointer();
+    // print_stack_info();
+
+    // analyze_stack_usage();
 
     // printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
     tests_reports__assert(counter_hp == counter_lp * 2 + 1);
@@ -120,31 +131,31 @@ task_l()
     }
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-      printf("%d ", a[i]);
+      // printf("%d ", a[i]);
       // printf("a[%d] = %d\n", i, a[i]);
       tests_reports__assert(a[i] == value);
     }
-    printf("\n");
-    puts_now("Task LP: Thread LP: eat\n");
+    // printf("\n");
+    // puts_now("Task LP: Thread LP: eat\n");
     tests_reports__eat(eat_lp);
-    puts_now("Task LP: Thread LP: before yield_to_higher()\n");
+    // puts_now("Task LP: Thread LP: before yield_to_higher()\n");
     const int stack_before = get_stack_pointer();
-    print_stack_size();
+    // print_stack_size();
     k_yield(); // FIXME -> revisar si es la llamada correcta
     tests_reports__assert(stack_before == get_stack_pointer());
-    puts_now("Thread LP: after yield_to_higher()\n");
+    // puts_now("Thread LP: after yield_to_higher()\n");
     // printf("counter_hp: %d | counter_lp: %d\n", counter_hp, counter_lp);
     tests_reports__assert(counter_hp == counter_lp * 2);
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
       // printf("a[%d] = %d\n", i, a[i]);
-      printf("%d ", a[i]);
+      // printf("%d ", a[i]);
       tests_reports__assert(a[i] == value);
     }
 
-    printf("\n");
-    puts_now("Task LP: Thread LP: clock_nanosleep()\n");
+    // printf("\n");
+    // puts_now("Task LP: Thread LP: clock_nanosleep()\n");
     // printf("Next activation time lp: %lld s %09ld ns\n", next_activation_time_lp.tv_sec, next_activation_time_lp.tv_nsec);
     TS_INC(next_activation_time_lp, period_lp);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_lp, NULL);
@@ -163,19 +174,27 @@ task_h()
 {
   while (1)
   {
-    puts_now("Task HP\n");
-    print_thread_stack_base();
-    print_stack_pointer();
-    print_stack_info();
+    // puts_now("Task HP\n");
+    // print_thread_stack_base();
+    // print_stack_pointer();
+    // print_stack_info();
+
+    // analyze_stack_usage();
     counter_hp++;
 
     tests_reports__assert(counter_hp / 2 == counter_lp);
 
     if (counter_hp == COUNTER_HP_END_VALUE)
     {
+      // print thead_analyzer report of stats 
+      // unsigned int cpu = k_current_get()->base.cpu;  
+      unsigned int cpu = 0;  
+      
+      // thread_analyzer_run(thread_analyzer_print, cpu);
+      thread_analyzer_print(cpu);
       tests_reports__test_ok();
     }
-    puts_now("Task HP: clock_nanosleep()\n");
+    // puts_now("Task HP: clock_nanosleep()\n");
     TS_INC(next_activation_time_hp, period_hp);
     // printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL);
@@ -186,7 +205,10 @@ task_h()
 
 int main(int argc, char const *argv[])
 {
-  // TODO
+
+  // prepate thread analyzer
+
+  
 
   int rc;
 
@@ -200,10 +222,10 @@ int main(int argc, char const *argv[])
   console_init(115200);
 
   print_console("\nYield to higher simple test\n");
-  print_console("\nMain starts\n");
+  // print_console("\nMain starts\n");
 
-  print_stack_pointer();
-  print_stack_info();
+  // print_stack_pointer();
+  // print_stack_info();
 
   clock_gettime(CLOCK_MONOTONIC, &next_activation_time_hp);
   const struct timespec delay_activation_lp = TS(0, DELAY_ACTIVATION_LP_NS);
@@ -241,11 +263,11 @@ int main(int argc, char const *argv[])
     handle_error_en(rc, "pthread_attr_setstack");
 
   // main ends
-  printf("Main ends\n");
-  print_stack_info();
-  print_thread_stack_base();
-  print_stack_info();
-  printf("\n");
+  // printf("Main ends\n");
+  // print_stack_info();
+  // print_thread_stack_base();
+  // print_stack_info();
+  // printf("\n");
 
   // Create threads
   rc = pthread_create(&thread_h, &attr_h, task_h, NULL);

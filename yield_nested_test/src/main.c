@@ -14,31 +14,18 @@
 THREAD_POOL(3);
 
 #define NUM_THREADS 3
-#define STACK_SIZE 512
+#define STACK_SIZE 4096
 
 K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
-#define COUNT_LP_END_VALUE 2
-int count_lp = 0;
-int count_mp = 0;
-int count_hp = 0;
+struct th_args
+{
+  char *name;
+  struct timespec *c_time;
+  struct timespec *period;
+  struct timespec *next_activation;
+};
 
-int global_stack_base;
-
-#define PERIOD_LP_NS 400000000
-#define PERIOD_MP_NS 200000000
-#define PERIOD_HP_NS 400000000
-#define DELAY_ACTIVATION_LP_NS (PERIOD_HP_NS / 10)
-const struct timespec period_lp = TS(0, PERIOD_LP_NS);
-const struct timespec period_mp = TS(0, PERIOD_MP_NS);
-const struct timespec period_hp = TS(0, PERIOD_HP_NS);
-
-#define EAT_LP_NS 250000000
-#define EAT_MP_NS 400000000
-#define EAT_HP_NS 100000000
-const struct timespec eat_lp = TS(0, EAT_LP_NS);
-const struct timespec eat_mp = TS(0, EAT_MP_NS);
-const struct timespec eat_hp = TS(0, EAT_HP_NS);
 
 void puts_now(char *msg)
 {
@@ -51,168 +38,131 @@ void puts_now(char *msg)
   printf(msg);
 }
 
-//********//
-// TASK-L //
-//********//
-
-struct timespec next_activation_time_lp = TS(0, 0);
+//******//
+// TASK //
+//******//
 
 void *
-task_l()
+task(void *args)
 {
-  count_lp++; 
-  // eats until task m is ready 
-  tests_reports__eat(eat_lp); 
-  printf("Task LP: after k_yield()\n");
-  // yield -> to task m
-  k_yield();
-  count_lp++; 
-  // after returning from yield, terminates
-  printf("Task LP: after k_yield()\n");
-  pthread_exit(NULL);
-}
+  struct th_args *th_args = (struct th_args *)args;
+  struct timespec ts;
+  double eat_time, tmp;
+  struct timespec next_activation = *th_args->next_activation;
 
-//********//
-// TASK-m //
-//********//
+  // CHKE (clock_gettime (CLOCK_MONOTONIC, &next_activation));
+  // double tmp = timespec_to_double (&next_activation);
+  int count = 0;
+  while (count < 3)
+    {
+      // escribe nombre y hora (usa clock_gettime() y timespec_to_double)
+      CHKE (clock_gettime (CLOCK_MONOTONIC, &ts));
+      tmp = timespec_to_double (&ts);
+      printf ("Thread %s hora: %f\n", th_args->name, tmp);
+      // ejecuta durante un tiempo (eat)
+      eat_time = timespec_to_double(th_args->c_time);
+      eat ((float)eat_time);
+      // escribe nombre y hora (usa clock_gettime() y timespec_to_double())
+      CHKE (clock_gettime (CLOCK_MONOTONIC, &ts));
+      tmp = timespec_to_double (&ts);
+      printf ("Thread %s despues de eat %f\n", th_args->name, tmp);
+      // calcula el siguiente instante de activación (usa incr_timespec())
+      incr_timespec (&next_activation, th_args->period);
+      printf ("Thread %s siguiente activacion %f\n", th_args->name,
+              timespec_to_double (&next_activation));
+      // comprueba si supera el plazo  (usa smaller_timespec())
+      if (smaller_timespec (&ts, &next_activation))
+        {
+          printf ("Thread %s dentro el plazo\n", th_args->name);
+        }
+      else
+        {
+          printf ("Thread %s sobrepasa superado el plazo\n", th_args->name);
+        }
+      count++;
+      // espera a la siguiente activación (usa clock_nanosleep())
+      CHK (clock_nanosleep (CLOCK_MONOTONIC, TIMER_ABSTIME,
+        &next_activation, NULL));
+    }
+  printf ("Thread %s termina\n", th_args->name);
+    pthread_exit(NULL);
 
-struct timespec next_activation_time_mp = TS(0, 0);
-
-void *
-task_m()
-{
-
-  puts_now("Task MP\n");
-
-  count_mp++;
-
-  puts_now("Task MP: first clock_nanosleep()\n");
-  TS_INC(next_activation_time_mp, period_mp);
-  printf("Next activation time mp: %lld s %09ld ns\n", next_activation_time_mp.tv_sec, next_activation_time_mp.tv_nsec);
-  clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_mp, NULL);
-  count_mp++;
-  // after wakeup eat for some time
-  puts_now("Task MP\n");
-  tests_reports__eat(eat_mp); // FIXME 
-  // then yield to higher
-  puts_now("Task MP: before k_yield()\n");
-  k_yield();
-  count_mp++;
-  puts_now("Task MP: after k_yield()\n");
-  //after do something else and terminate the task
-
-  pthread_exit(NULL);
-}
-
-//********//
-// TASK-H //
-//********//
-
-struct timespec next_activation_time_hp = TS(0, PERIOD_MP_NS);
-
-void *
-task_h()
-{
-  puts_now("Task HP\n");
-  count_hp++;
-
-  puts_now("Task HP: first clock_nanosleep()\n");
-  TS_INC(next_activation_time_hp, period_hp);
-  printf("Next activation time hp: %lld s %09ld ns\n", next_activation_time_hp.tv_sec, next_activation_time_hp.tv_nsec);
-  clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_activation_time_hp, NULL); // jumps to task_m
-  count_hp++;
-  puts_now("Task HP\n");
-  // wake up from nanosleep and eat for some time then end
-  tests_reports__eat(eat_hp); // TODO: check
-
-  pthread_exit(NULL);
 }
 
 int main(int argc, char const *argv[])
 {
-  int rc;
+  printf("Preemtive tasks test with fix priorities\n");
+  pthread_t th1, th2, th3;
+  pthread_attr_t attr_th1, attr_th2, attr_th3;
+  struct sched_param sch_param_th1, sch_param_th2, sch_param_th3;
+  struct timespec c_time_th1, c_time_th2, c_time_th3;
+  struct timespec period_th1, period_th2, period_th3;
+  struct timespec next_activation;
 
-  pthread_t thread_h, thread_l, thread_m;
-  pthread_attr_t attr_h, attr_l, attr_m;
-  struct sched_param sch_param_h = {.sched_priority = 15};
-  struct sched_param sch_param_m = {.sched_priority = 10};
-  struct sched_param sch_param_l = {.sched_priority = 5};
+  clock_gettime(CLOCK_MONOTONIC, &next_activation);
 
-  m2osinit();
-  check_posix_api();
-  console_init(115200);
+  c_time_th1.tv_sec = 1;
+  c_time_th1.tv_nsec = 0;
+  period_th1.tv_sec = 3;
+  period_th1.tv_nsec = 0;
+  struct th_args th1_args = { "th1", &c_time_th1, &period_th1, &next_activation};
 
-  // init measurements
+  c_time_th2.tv_sec = 1;
+  c_time_th2.tv_nsec = 0;
+  period_th2.tv_sec = 4;
+  period_th2.tv_nsec = 0;
+  struct th_args th2_args = { "th2", &c_time_th2, &period_th2, &next_activation };
 
-  print_console("\nYield to higher chained test\n");
-  print_console("\nMain starts\n");
-  // CODE HERE
+  c_time_th3.tv_sec = 1;
+  c_time_th3.tv_nsec = 200000000;
+  period_th3.tv_sec = 5;
+  period_th3.tv_nsec = 0;
+  struct th_args th3_args = { "th3", &c_time_th3, &period_th3, &next_activation };  
 
-  pthread_attr_init(&attr_h);
-  pthread_attr_init(&attr_m);
-  pthread_attr_init(&attr_l);
+  CHK(pthread_attr_init(&attr_th1));
+  CHK(pthread_attr_init(&attr_th2));
+  CHK(pthread_attr_init(&attr_th3));
 
-  // Stack size
-  pthread_attr_setstacksize(&attr_h, STACK_SIZE);
-  pthread_attr_setstacksize(&attr_m, STACK_SIZE);
-  pthread_attr_setstacksize(&attr_l, STACK_SIZE);
+  // CHK(pthread_attr_setstacksize(&attr_th1, STACK_SIZE));
+  // CHK(pthread_attr_setstacksize(&attr_th2, STACK_SIZE));
+  // CHK(pthread_attr_setstacksize(&attr_th3, STACK_SIZE));
 
-  // Politica de planificación
-  rc = pthread_attr_setschedpolicy(&attr_h, SCHED_FIFO);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedpolicy");
-  rc = pthread_attr_setschedpolicy(&attr_m, SCHED_FIFO);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedpolicy");
-  rc = pthread_attr_setschedpolicy(&attr_l, SCHED_FIFO);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedpolicy");
+  CHK(pthread_attr_setstack(&attr_th1, thread_stack[0], STACK_SIZE));
+  CHK(pthread_attr_setstack(&attr_th2, thread_stack[1], STACK_SIZE));
+  CHK(pthread_attr_setstack(&attr_th3, thread_stack[2], STACK_SIZE));
+  
+  CHK(pthread_attr_setinheritsched(&attr_th1, PTHREAD_EXPLICIT_SCHED));
+  CHK(pthread_attr_setschedpolicy(&attr_th1, SCHED_RR));
 
-  // Prioridades
-  rc = pthread_attr_setschedparam(&attr_h, &sch_param_h);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam h");
-  rc = pthread_attr_setschedparam(&attr_m, &sch_param_m);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam m");
-  rc = pthread_attr_setschedparam(&attr_l, &sch_param_l);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setschedparam l");
+  CHK(pthread_attr_setinheritsched(&attr_th2, PTHREAD_EXPLICIT_SCHED));
+  CHK(pthread_attr_setschedpolicy(&attr_th2, SCHED_RR));
 
-  // Thread stack
-  rc = pthread_attr_setstack(&attr_h, thread_stack[0], STACK_SIZE);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setstack");
-  rc = pthread_attr_setstack(&attr_m, thread_stack[1], STACK_SIZE);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setstack");
-  rc = pthread_attr_setstack(&attr_l, thread_stack[2], STACK_SIZE);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_attr_setstack");
-  // Create threads
-  rc = pthread_create(&thread_h, &attr_h, task_h, NULL);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_create");
-  rc = pthread_create(&thread_m, &attr_m, task_m, NULL);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_create");
-  rc = pthread_create(&thread_l, &attr_l, task_l, NULL);
-  if (rc != 0)
-    handle_error_en(rc, "pthread_create");
+  CHK(pthread_attr_setinheritsched(&attr_th3, PTHREAD_EXPLICIT_SCHED));
+  CHK(pthread_attr_setschedpolicy(&attr_th3, SCHED_RR));
 
-  // main ends
-  printf("Main ends\n");
-  // print_thread_stack_base();
-  // print_stack_pointer();
-  // print_stack_info();
+  sch_param_th1.sched_priority = 14;
+  sch_param_th2.sched_priority = 10;
+  sch_param_th3.sched_priority = 5;
 
-  // join thread
-  pthread_join(thread_h, NULL);
-  pthread_join(thread_m, NULL);
-  pthread_join(thread_l, NULL);
-  print_console("\nMain ends\n");
+  CHK(pthread_attr_setschedparam(&attr_th1, &sch_param_th1));
+  CHK(pthread_attr_setschedparam(&attr_th2, &sch_param_th2));
+  CHK(pthread_attr_setschedparam(&attr_th3, &sch_param_th3));
 
-  // print counters
-  printf("count_hp: %d | count_mp: %d | count_lp: %d\n", count_hp, count_mp, count_lp);
+  CHK(pthread_attr_setdetachstate(&attr_th1, PTHREAD_CREATE_JOINABLE));
+  CHK(pthread_attr_setdetachstate(&attr_th2, PTHREAD_CREATE_JOINABLE));
+  CHK(pthread_attr_setdetachstate(&attr_th3, PTHREAD_CREATE_JOINABLE));
+
+  printf("Main -> creando threads\n");
+
+  CHK(pthread_create(&th1, &attr_th1, task, &th1_args));
+  CHK(pthread_create(&th2, &attr_th2, task, &th2_args));
+  CHK(pthread_create(&th3, &attr_th3, task, &th3_args));
+  // printf("Main -> threads creados\n");
+
+  // wait for threads to finish
+  CHK(pthread_join(th1, NULL));
+  CHK(pthread_join(th2, NULL));
+  CHK(pthread_join(th3, NULL));
+
   return 0;
 }

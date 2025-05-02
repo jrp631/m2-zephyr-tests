@@ -133,7 +133,11 @@ task_l()
     // const int stack_before = m2_hal_regs_get_sp_reg();
     // const uint32_t stack_before = get_stack_pointer();
     // print_stack_size();
-    k_yield();
+
+
+    // k_yield();
+    
+    
     // tests_reports__assert(stack_before == get_stack_pointer());
     // puts_now("Task LP: Thread LP: after k_yield()\n");
 

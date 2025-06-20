@@ -1,11 +1,15 @@
 #include "../headers/headers.h"
 
-#define NUM_THREADS 10
+#define NUM_THREADS 9
 #define STACK_SIZE 4096 // 4KB same stack as M2OS
 
 K_THREAD_STACK_ARRAY_DEFINE(thread_stack, NUM_THREADS, STACK_SIZE);
 
 k_timeout_t period1_k = K_MSEC(100); // 0.1s
+
+#define PRINT_FIELD_INFO(type, field) \
+    printf("Field " #field ": offset = %zu, size = %zu\n", offsetof(type, field), sizeof(((type *)0)->field))
+
 
 //mutex to protect shared resource
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -18,6 +22,7 @@ int main(int argc, char const *argv[])
 {
 
   // Thread vars
+  struct k_mutex dummy_mtx;
   pthread_t threads[NUM_THREADS];
   pthread_attr_t attr[NUM_THREADS];
   struct sched_param sch_param = {.sched_priority = 3};
@@ -28,6 +33,15 @@ int main(int argc, char const *argv[])
   print_console_int(NUM_THREADS);
   puts("\n");
 
+#ifdef _ZEPHYR__VERBOSE_
+  struct k_mutex dummy;
+  printf("Size of K_mutext : %d\n", sizeof(dummy_mtx));
+  printf("Size of pthread_mutex_t: %d\n", sizeof(mutex));
+  PRINT_FIELD_INFO(struct k_mutex, lock_count);
+  PRINT_FIELD_INFO(struct k_mutex, owner);
+  PRINT_FIELD_INFO(struct k_mutex, wait_q);
+  PRINT_FIELD_INFO(struct k_mutex, owner_orig_prio);
+#endif // _ZEPHYR__VERBOSE_
   // init attr and create threads
 
   for (int i = 0; i < NUM_THREADS; i++)

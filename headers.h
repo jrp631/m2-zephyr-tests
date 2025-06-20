@@ -1,6 +1,8 @@
 #ifndef _ZEPHYR_POSIX_TEST_HEADERS
 #define _ZEPHYR_POSIX_TEST_HEADERS
 
+// #define _ZEPHYR__VERBOSE_
+
 #include <stdint.h>
 #include <stdio.h>
 #include <errno.h>
@@ -29,11 +31,11 @@ static inline void set_systick_reload(uint32_t reload)
 {
 }
 
-//M2OS macro -> does nothing in Zephyr 
+//M2OS macro -> does nothing in Zephyr
 #define THREAD_POOL(num_threads) \
    const int max_num_threads=num_threads; \
 
-//m2os function renaming 
+//m2os function renaming
 #define print_console(msg) printf("%s", (msg))
 #define print_console_int(num) printf("%"PRIu64, (uint64_t)(num))
 #define print_console_newline() printf("\n")

@@ -7,6 +7,16 @@
 #include <zephyr/posix/time.h>
 #include <zephyr/posix/load.h>
 
+#define CHK(p) { int ret;                                      \
+  if ((ret = p)) {			       \
+    printf ("Error:"#p":%s\n", strerror (ret)); \
+    exit (-1);                                  \
+  }                                             \
+}
+
+#define CHKE(p) {if ((p)==-1) {perror (#p); exit (-1);}}
+
+
 static inline void 
 tests_reports__test_ok () {
   puts ("\nTEST OK\n");

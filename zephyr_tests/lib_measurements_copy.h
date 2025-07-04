@@ -30,10 +30,14 @@ uint64_t measurement_end_time = 0;
 
 uint64_t max_measurement_time = 0; 
 
-// FIXME -> borrar -> no son necesarias las estadisticas de uso 
 k_tid_t thread;                 // current thread
 k_thread_runtime_stats_t stats; // thread stats
 
+/**
+ * @brief  Get the cycles of execution of the current thread. 
+ * @note   Runtime stats need to be enabled
+ * @retval Execution cycles of the current thread, - 1 if runtime stats are not enabled.
+ */
 static inline uint64_t get_exec_cycles()
 {
 	
@@ -66,22 +70,12 @@ static inline void measurements_hires__reset()
 // start
 static inline void measurements_hires__start_measurement()
 {
-	//measurement_start_time = get_exec_cycles();
 	measurement_start_time = sys_clock_cycle_get_64();
-}
-
-// start - ret
-static inline uint64_t measurements_hires__start_measurement_ret()
-{
-	//measurement_start_time = get_exec_cycles();
-	measurement_start_time = sys_clock_cycle_get_64();
-	return measurement_start_time;
 }
 
 // end
 static inline void measurements_hires__end_measurement()
 {
-	//uint64_t current_time_hw = get_exec_cycles();
 	uint64_t current_time_hw = sys_clock_cycle_get_64();
 	total_measurements_time =
 		total_measurements_time + (current_time_hw - measurement_start_time);
@@ -92,18 +86,6 @@ static inline void measurements_hires__end_measurement()
   {
     max_measurement_time = current_time_hw - measurement_start_time;
   }
-}
-
-// start - ret 
-static inline uint64_t measurements_hires__end_measurement_ret()
-{
-	//uint64_t current_time_hw = get_exec_cycles();
-	uint64_t current_time_hw = sys_clock_cycle_get_64();
-	total_measurements_time =
-		total_measurements_time + (current_time_hw - measurement_start_time);
-
-	num_of_measurements++;
-	return total_measurements_time;
 }
 
 // avg
@@ -117,22 +99,27 @@ static inline uint64_t measurements_hires__measurement_avg()
 static inline uint64_t measurements_hires__measurement_avg_ns()
 {
 	return measurements_hires__measurement_avg() * 1000 / 168;
-	//return k_cyc_to_ns_floor64(measurements_hires__measurement_avg());
 }
 
+/**
+ * @brief  Get the measurement time
+ * @note   
+ * @retval Measurement time
+ */
 static inline uint64_t measurements_hires__measurement_time()
-//static inline uint64_t measurements_hires__get_measurement_time()
 {
 	return total_measurements_time;
 }
 
-// init
-static inline void measurements_hires__init() // FIXME
+/**
+ * @brief Initialize the measurements_hires module.
+ * @note This function initializes the measurements_hires module and calculates the measure time offset     
+ * @retval None
+ */
+static inline void measurements_hires__init() 
 {
-	// TODO -> initialize the runtime stats???
 	int num_of_measures = 1000;
 	initialized = true;
-	//thread = k_current_get(); // FIXME -> funciona para mas de un thread?
 
 	// Get measure_time offset
 	for (int i = 0; i < num_of_measures; i++) {
@@ -148,7 +135,11 @@ static inline void measurements_hires__init() // FIXME
 	total_measurements_time = 0;
 }
 
-// printf measurements
+/**
+ * @brief Print the measurements data.  
+ * @note   
+ * @retval None
+ */
 static inline void measurements_hires__print_measures_data()
 {
 	printf("Total:");
